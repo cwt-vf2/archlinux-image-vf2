@@ -1,42 +1,69 @@
 #!/bin/bash
 
+## Configuration section ##
+
+# Build
 BUILD=cwt14
 KERNEL=5.15.2
 SF_VERSION=v3.1.5
 SF_RELEASE_URL=https://github.com/starfive-tech/VisionFive2/releases/download
-
 ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2023-06-07.tar.zst
-
 DATA=/data
 IMAGE=${DATA}/ArchLinux-VF2_${KERNEL}_${SF_VERSION}-${BUILD}.img
 TARGET=${DATA}/${BUILD}
+PKGS=${DATA}/pkgs
 
-WGET="wget --quiet -c -O"
+# Kernel
+KNL_REL=1
+KNL_NAME=linux-cwt-515-starfive-visionfive2
+KNL_URL=https://github.com/cwt/pkgbuild-linux-cwt-starfive-visionfive2/releases/download/${BUILD}-${SF_VERSION:1}-${KNL_REL}
+KNL_SUFFIX=${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst
 
-# Install required tools
+# GPU
+GPU_VER=1.19.6345021
+GPU_REL=2
+GPU_URL=https://github.com/cwt/aur-visionfive2-img-gpu/releases/download/${BUILD}-${GPU_VER}-${GPU_REL}
+GPU_PKG=visionfive2-img-gpu-${GPU_VER}-${GPU_REL}-riscv64.pkg.tar.zst
+
+# Mesa
+MESA_VER=21.2.1
+MESA_REL=2
+MESA_URL=https://github.com/cwt/aur-mesa-pvr-vf2/releases/download/v${MESA_VER}-${MESA_REL}
+MESA_PKG=mesa-pvr-vf2-${MESA_VER}-${MESA_REL}-riscv64.pkg.tar.zst
+
+# Target packages
+PACKAGES="base btrfs-progs chrony clinfo compsize dosfstools mtd-utils networkmanager openssh rng-tools smartmontools sudo terminus-font vi vulkan-tools wireless-regdb zram-generator zstd"
+
+## End configuration section ##
+
+## Build section ##
+
+# Install required tools on the builder box
 sudo pacman -S wget arch-install-scripts zstd util-linux btrfs-progs dosfstools --needed --noconfirm
 
-# Prepare build directories
+# Prepare build directory
 sudo mkdir -p /data
 sudo chown $(id -u):$(id -g) /data
 mkdir -p /data/pkgs
+
+# Set wget options
+WGET="wget --quiet -c -O"
 
 # Download rootfs, StarFive SPL and U-Boot images
 ${WGET} ${DATA}/rootfs.tar.zst ${ROOTFS}
 ${WGET} ${DATA}/u-boot-spl.bin.normal.out ${SF_RELEASE_URL}/VF2_${SF_VERSION}/u-boot-spl.bin.normal.out
 ${WGET} ${DATA}/visionfive2_fw_payload.img ${SF_RELEASE_URL}/VF2_${SF_VERSION}/visionfive2_fw_payload.img
 
-# Download -cwt kernel and GPU driver
-KNL_REL=1
-KNL_NAME=linux-cwt-515-starfive-visionfive2
-KNL_URL=https://github.com/cwt/pkgbuild-linux-cwt-starfive-visionfive2/releases/download/${BUILD}-${SF_VERSION:1}-${KNL_REL}
-GPU_VER=1.19.6345021
-GPU_REL=2
-GPU_URL=https://github.com/cwt/aur-visionfive2-img-gpu/releases/download/${BUILD}-${GPU_VER}-${GPU_REL}/visionfive2-img-gpu-${GPU_VER}-${GPU_REL}-riscv64.pkg.tar.zst
-${WGET} ${DATA}/pkgs/${KNL_NAME}-${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst ${KNL_URL}/${KNL_NAME}-${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst
-${WGET} ${DATA}/pkgs/${KNL_NAME}-headers-${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst ${KNL_URL}/${KNL_NAME}-headers-${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst
-${WGET} ${DATA}/pkgs/${KNL_NAME}-soft_3rdpart-${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst ${KNL_URL}/${KNL_NAME}-soft_3rdpart-${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst
-${WGET} ${DATA}/pkgs/visionfive2-img-gpu-${GPU_VER}-${GPU_REL}-riscv64.pkg.tar.zst ${GPU_URL}
+# Download -cwt kernel
+${WGET} ${PKGS}/${KNL_NAME}-${KNL_SUFFIX} ${KNL_URL}/${KNL_NAME}-${KNL_SUFFIX}
+${WGET} ${PKGS}/${KNL_NAME}-headers-${KNL_SUFFIX} ${KNL_URL}/${KNL_NAME}-headers-${KNL_SUFFIX}
+${WGET} ${PKGS}/${KNL_NAME}-soft_3rdpart-${KNL_SUFFIX} ${KNL_URL}/${KNL_NAME}-soft_3rdpart-${KNL_SUFFIX}
+
+# Download GPU driver
+${WGET} ${PKGS}/${GPU_PKG} ${GPU_URL}/${GPU_PKG}
+
+# Download Mesa
+${WGET} ${PKGS}/${MESA_PKG} ${MESA_URL}/${MESA_PKG}
 
 # Setup disk image
 rm -f ${IMAGE}
@@ -56,28 +83,27 @@ sudo mkfs.btrfs --csum xxhash -L VF2 ${LOOP}p4
 
 # Setup target mount
 sudo mkdir -p ${TARGET}
-sudo mount -o discard=async,compress=lzo,user_subvol_rm_allowed ${LOOP}p4 ${TARGET}
-sudo btrfs subvolume create ${TARGET}/@
-sudo btrfs subvolume create ${TARGET}/@home
-sudo btrfs subvolume create ${TARGET}/@pkg
-sudo btrfs subvolume create ${TARGET}/@log
-sudo btrfs subvolume create ${TARGET}/@snapshots
+sudo mount -o discard=async,compress=lzo ${LOOP}p4 ${TARGET}
+VOLUMES="@ @home @pkg @log @snapshots"
+for volume in ${VOLUMES}; do
+	sudo btrfs subvolume create ${TARGET}/${volume}
+done
 sudo umount ${TARGET}
 
 # Remount all subvolumes
 VOLUMES="@:${TARGET} @home:${TARGET}/home @pkg:${TARGET}/var/cache/pacman/pkg @log:${TARGET}/var/log @snapshots:${TARGET}/.snapshots"
 for volume in ${VOLUMES}; do
-	IFS=: read -r subvol mnt <<< $volume
+	IFS=: read -r subvol mnt <<< ${volume}
 	sudo mkdir -p ${mnt}
-	sudo mount -o discard=async,compress=lzo,user_subvol_rm_allowed,subvol=${subvol} ${LOOP}p4 ${mnt}
+	sudo mount -o discard=async,compress=lzo,subvol=${subvol} ${LOOP}p4 ${mnt}
 done
 
 # Mount /boot and install StarFive u-boot config
 sudo mkdir -p ${TARGET}/boot
 sudo mount -o discard ${LOOP}p3 ${TARGET}/boot
 sudo mkdir -p ${TARGET}/boot/extlinux
-sudo install -o root -g root -m 644 uEnv.txt ${TARGET}/boot/uEnv.txt
-sudo install -o root -g root -m 644 extlinux.conf ${TARGET}/boot/extlinux/extlinux.conf
+sudo install -o root -g root -m 644 configs/uEnv.txt ${TARGET}/boot/uEnv.txt
+sudo install -o root -g root -m 644 configs/extlinux.conf ${TARGET}/boot/extlinux/extlinux.conf
 
 # Extract rootfs to target mount
 sudo tar -C ${TARGET} --zstd -xf ${DATA}/rootfs.tar.zst
@@ -87,17 +113,16 @@ sudo mkdir -p ${TARGET}/root/pkgs
 sudo cp ${DATA}/pkgs/* ${TARGET}/root/pkgs
 
 # Update and install packages via arch-chroot
-PACKAGES="base btrfs-progs chrony compsize dosfstools mtd-utils networkmanager openssh rng-tools smartmontools sudo terminus-font vi wireless-regdb zram-generator zstd"
 sudo arch-chroot ${TARGET} pacman -Syu --noconfirm
 sudo arch-chroot ${TARGET} pacman -S ${PACKAGES} --needed --noconfirm
 sudo arch-chroot ${TARGET} bash -c "pacman -U /root/pkgs/*.pkg.tar.zst --noconfirm"
 sudo arch-chroot ${TARGET} pacman -Scc --noconfirm
 
-# Install default config
-sudo install -o root -g root -m 644 fstab ${TARGET}/etc/fstab
-sudo install -o root -g root -m 644 hostname ${TARGET}/etc/hostname
-sudo install -o root -g root -m 644 vconsole.conf ${TARGET}/etc/vconsole.conf
-sudo install -o root -g root -m 644 zram-generator.conf ${TARGET}/etc/systemd/zram-generator.conf
+# Install default configs
+sudo install -o root -g root -m 644 configs/fstab ${TARGET}/etc/fstab
+sudo install -o root -g root -m 644 configs/hostname ${TARGET}/etc/hostname
+sudo install -o root -g root -m 644 configs/vconsole.conf ${TARGET}/etc/vconsole.conf
+sudo install -o root -g root -m 644 configs/zram-generator.conf ${TARGET}/etc/systemd/zram-generator.conf
 
 # Create user
 sudo arch-chroot ${TARGET} groupadd user
@@ -111,10 +136,8 @@ for service in ${SERVICES}; do
 	sudo arch-chroot ${TARGET} systemctl enable ${service}
 done
 
-# Show files
-#sudo find ${TARGET}
+## End build section ##
 
-# Clean up
-
-echo "To clean up run: ./cleanup.sh ${TARGET} ${LOOP}"
+## Clean up ##
+echo -e "\nTo clean up run: ./cleanup.sh ${TARGET} ${LOOP}"
 
