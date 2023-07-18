@@ -2,13 +2,18 @@
 
 ## Configuration section ##
 
-# Build
+# Constants
+GITHUB=https://github.com
+DATA=/data
+
+# Build parameters
 BUILD=cwt14
 KERNEL=5.15.2
 SF_VERSION=v3.1.5
-SF_RELEASE_URL=https://github.com/starfive-tech/VisionFive2/releases/download
+SF_RELEASE_URL=${GITHUB}/starfive-tech/VisionFive2/releases/download
 ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2023-07-10.tar.zst
-DATA=/data
+
+# Output
 IMAGE=${DATA}/ArchLinux-VF2_${KERNEL}_${SF_VERSION}-${BUILD}.img
 TARGET=${DATA}/${BUILD}
 PKGS=${DATA}/pkgs
@@ -16,23 +21,24 @@ PKGS=${DATA}/pkgs
 # Kernel
 KNL_REL=1
 KNL_NAME=linux-cwt-515-starfive-visionfive2
-KNL_URL=https://github.com/cwt/pkgbuild-linux-cwt-starfive-visionfive2/releases/download/${BUILD}-${SF_VERSION:1}-${KNL_REL}
+KNL_URL=${GITHUB}/cwt/pkgbuild-linux-cwt-starfive-visionfive2/releases/download/${BUILD}-${SF_VERSION:1}-${KNL_REL}
 KNL_SUFFIX=${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst
 
 # GPU
 GPU_VER=1.19.6345021
 GPU_REL=2
-GPU_URL=https://github.com/cwt/aur-visionfive2-img-gpu/releases/download/${BUILD}-${GPU_VER}-${GPU_REL}
+GPU_URL=${GITHUB}/cwt/aur-visionfive2-img-gpu/releases/download/${BUILD}-${GPU_VER}-${GPU_REL}
 GPU_PKG=visionfive2-img-gpu-${GPU_VER}-${GPU_REL}-riscv64.pkg.tar.zst
 
 # Mesa
 MESA_VER=21.2.1
 MESA_REL=2
-MESA_URL=https://github.com/cwt/aur-mesa-pvr-vf2/releases/download/v${MESA_VER}-${MESA_REL}
+MESA_URL=${GITHUB}/cwt/aur-mesa-pvr-vf2/releases/download/v${MESA_VER}-${MESA_REL}
 MESA_PKG=mesa-pvr-vf2-${MESA_VER}-${MESA_REL}-riscv64.pkg.tar.zst
 
 # Target packages
-PACKAGES="base btrfs-progs chrony clinfo compsize dosfstools mtd-utils networkmanager openssh rng-tools smartmontools sudo terminus-font vi vulkan-tools wireless-regdb zram-generator zstd"
+PACKAGES="base btrfs-progs chrony clinfo compsize dosfstools mtd-utils networkmanager openssh rng-tools\
+          smartmontools sudo terminus-font vi vulkan-tools wireless-regdb zram-generator zstd"
 
 ## End configuration section ##
 
@@ -91,7 +97,8 @@ done
 sudo umount ${TARGET}
 
 # Remount all subvolumes
-VOLUMES="@:${TARGET} @home:${TARGET}/home @pkg:${TARGET}/var/cache/pacman/pkg @log:${TARGET}/var/log @snapshots:${TARGET}/.snapshots"
+VOLUMES="@:${TARGET} @home:${TARGET}/home @pkg:${TARGET}/var/cache/pacman/pkg\
+         @log:${TARGET}/var/log @snapshots:${TARGET}/.snapshots"
 for volume in ${VOLUMES}; do
 	IFS=: read -r subvol mnt <<< ${volume}
 	sudo mkdir -p ${mnt}
