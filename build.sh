@@ -123,7 +123,7 @@ sudo cp ${DATA}/pkgs/* ${TARGET}/root/pkgs
 sudo arch-chroot ${TARGET} pacman -Syu --noconfirm
 sudo arch-chroot ${TARGET} pacman -S ${PACKAGES} --needed --noconfirm
 sudo arch-chroot ${TARGET} bash -c "pacman -U /root/pkgs/*.pkg.tar.zst --noconfirm"
-sudo arch-chroot ${TARGET} pacman -Scc --noconfirm
+sudo arch-chroot ${TARGET} pacman -Sc --noconfirm
 
 # Hotfix https://github.com/cwt/pkgbuild-linux-cwt-starfive-visionfive2/issues/1
 sudo arch-chroot ${TARGET} sed -ie "s/ALL_config/#ALL_config/g" /etc/mkinitcpio.d/linux.preset
