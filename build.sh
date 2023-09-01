@@ -59,7 +59,7 @@ export LANG=C.UTF-8
 WORK_DIR=$(pwd)
 
 # Install required tools on the builder box
-sudo pacman -S wget arch-install-scripts zstd util-linux btrfs-progs dosfstools git --needed --noconfirm
+sudo pacman -S wget arch-install-scripts zstd util-linux btrfs-progs dosfstools git xz --needed --noconfirm
 
 # Prepare build directory
 sudo mkdir -p ${DATA}
@@ -101,8 +101,12 @@ LOOP=$(sudo losetup -f -P --show "${IMAGE}")
 sudo sfdisk ${LOOP} < parts.txt
 
 # Dump SPL and U-Boot to the disk
-sudo dd if=${DATA}/u-boot-spl.bin.normal.out of=${LOOP}p1 bs=512
-sudo dd if=${DATA}/visionfive2_fw_payload.img of=${LOOP}p2 bs=512
+#sudo dd if=${DATA}/u-boot-spl.bin.normal.out of=${LOOP}p1 bs=512
+#sudo dd if=${DATA}/visionfive2_fw_payload.img of=${LOOP}p2 bs=512
+
+# Somehow the SPL and U-Boot images above are not working, use Debian image instead
+xzcat debian-part1.img.xz | sudo dd of=${LOOP}p1 bs=512
+xzcat debian-part2.img.xz | sudo dd of=${LOOP}p2 bs=512
 
 # Format EFI partition
 sudo mkfs.vfat -n EFI ${LOOP}p3
