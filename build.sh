@@ -7,9 +7,9 @@ GITHUB=https://github.com
 DATA=/data
 
 # Build parameters
-BUILD=cwt15
+BUILD=cwt16
 KERNEL=5.15.2
-SF_VERSION=v3.4.5
+SF_VERSION=v3.6.1
 SF_RELEASE_URL=${GITHUB}/starfive-tech/VisionFive2/releases/download
 ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2023-07-10.tar.zst
 
@@ -27,7 +27,9 @@ KNL_SUFFIX=${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst
 # GPU
 GPU_VER=1.19.6345021
 GPU_REL=3
-GPU_URL=${GITHUB}/cwt/aur-visionfive2-img-gpu/releases/download/${BUILD}-${GPU_VER}-${GPU_REL}
+# GPU driver on VF2_v3.6.1 is exactly the same as VF2_v3.4.5, so just use the old one.
+#GPU_URL=${GITHUB}/cwt/aur-visionfive2-img-gpu/releases/download/${BUILD}-${GPU_VER}-${GPU_REL}
+GPU_URL=${GITHUB}/cwt/aur-visionfive2-img-gpu/releases/download/cwt15-${GPU_VER}-${GPU_REL}
 GPU_PKG=visionfive2-img-gpu-${GPU_VER}-${GPU_REL}-riscv64.pkg.tar.zst
 
 # Mesa
@@ -35,6 +37,11 @@ MESA_VER=22.1.3
 MESA_REL=1
 MESA_URL=${GITHUB}/cwt/aur-mesa-pvr-vf2/releases/download/v${MESA_VER}-${MESA_REL}
 MESA_PKG=mesa-pvr-vf2-${MESA_VER}-${MESA_REL}-riscv64.pkg.tar.zst
+
+# WiFi Firmware
+BUILDROOT=${DATA}/buildroot
+BUILDROOT_GIT=${GITHUB}/starfive-tech/buildroot.git
+WIFI_FW_PATH=package/starfive/usb_wifi
 
 # Target packages
 PACKAGES="base btrfs-progs chrony clinfo compsize dosfstools mtd-utils networkmanager openssh rng-tools\
@@ -44,16 +51,23 @@ PACKAGES="base btrfs-progs chrony clinfo compsize dosfstools mtd-utils networkma
 
 ## Build section ##
 
+# Set locale to POSIX standards-compliant
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
+
+# Remember current directory
+WORK_DIR=$(pwd)
+
 # Install required tools on the builder box
-sudo pacman -S wget arch-install-scripts zstd util-linux btrfs-progs dosfstools --needed --noconfirm
+sudo pacman -S wget arch-install-scripts zstd util-linux btrfs-progs dosfstools git --needed --noconfirm
 
 # Prepare build directory
-sudo mkdir -p /data
-sudo chown $(id -u):$(id -g) /data
-mkdir -p /data/pkgs
+sudo mkdir -p ${DATA}
+sudo chown $(id -u):$(id -g) ${DATA}
+mkdir -p ${PKGS}
 
 # Set wget options
-WGET="wget --quiet -c -O"
+WGET="wget --progress=bar -c -O"
 
 # Download rootfs, StarFive SPL and U-Boot images
 ${WGET} ${DATA}/rootfs.tar.zst ${ROOTFS}
@@ -71,6 +85,15 @@ ${WGET} ${PKGS}/${GPU_PKG} ${GPU_URL}/${GPU_PKG}
 # Download Mesa
 ${WGET} ${PKGS}/${MESA_PKG} ${MESA_URL}/${MESA_PKG}
 
+# Download WiFi Firmware
+rm -rf ${BUILDROOT}
+cd ${DATA}
+git clone -n --depth=1 --filter=tree:0 -b JH7110_VisionFive2_devel ${BUILDROOT_GIT}
+cd ${BUILDROOT}
+git sparse-checkout set --no-cone ${WIFI_FW_PATH}
+git checkout
+cd ${WORK_DIR}
+
 # Setup disk image
 rm -f ${IMAGE}
 fallocate -l 2250M ${IMAGE}
@@ -78,8 +101,8 @@ LOOP=$(sudo losetup -f -P --show "${IMAGE}")
 sudo sfdisk ${LOOP} < parts.txt
 
 # Dump SPL and U-Boot to the disk
-sudo dd if=${DATA}/u-boot-spl.bin.normal.out of=${LOOP}p1 bs=4096 oflag=direct
-sudo dd if=${DATA}/visionfive2_fw_payload.img of=${LOOP}p2 bs=4096 oflag=direct
+sudo dd if=${DATA}/u-boot-spl.bin.normal.out of=${LOOP}p1 bs=512
+sudo dd if=${DATA}/visionfive2_fw_payload.img of=${LOOP}p2 bs=512
 
 # Format EFI partition
 sudo mkfs.vfat -n EFI ${LOOP}p3
@@ -125,8 +148,10 @@ sudo arch-chroot ${TARGET} pacman -S ${PACKAGES} --needed --noconfirm
 sudo arch-chroot ${TARGET} bash -c "pacman -U /root/pkgs/*.pkg.tar.zst --noconfirm"
 sudo arch-chroot ${TARGET} pacman -Sc --noconfirm
 
-# Hotfix https://github.com/cwt/pkgbuild-linux-cwt-starfive-visionfive2/issues/1
-sudo arch-chroot ${TARGET} sed -ie "s/ALL_config/#ALL_config/g" /etc/mkinitcpio.d/linux.preset
+# Install WiFi Firmware
+sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_FW_PATH}/ECR6600U_transport.bin ${TARGET}/usr/lib/firmware/ECR6600U_transport.bin
+sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_FW_PATH}/aic8800/* -t ${TARGET}/usr/lib/firmware/aic8800
+sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_FW_PATH}/aic8800DC/* -t ${TARGET}/usr/lib/firmware/aic8800DC
 
 # Install default configs
 sudo install -o root -g root -m 644 configs/fstab ${TARGET}/etc/fstab
