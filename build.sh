@@ -34,7 +34,7 @@ GPU_PKG=visionfive2-img-gpu-${GPU_VER}-${GPU_REL}-riscv64.pkg.tar.zst
 
 # Mesa
 MESA_VER=22.1.3
-MESA_REL=1
+MESA_REL=2
 MESA_URL=${GITHUB}/cwt/aur-mesa-pvr-vf2/releases/download/v${MESA_VER}-${MESA_REL}
 MESA_PKG=mesa-pvr-vf2-${MESA_VER}-${MESA_REL}-riscv64.pkg.tar.zst
 
