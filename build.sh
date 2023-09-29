@@ -7,11 +7,11 @@ GITHUB=https://github.com
 DATA=/data
 
 # Build parameters
-BUILD=cwt16
+BUILD=cwt17
 KERNEL=5.15.2
-SF_VERSION=v3.6.1
+SF_VERSION=v3.7.5
 SF_RELEASE_URL=${GITHUB}/starfive-tech/VisionFive2/releases/download
-ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2023-07-10.tar.zst
+ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2023-09-13.tar.zst
 
 # Output
 IMAGE=${DATA}/ArchLinux-VF2_${KERNEL}_${SF_VERSION}-${BUILD}.img
@@ -27,14 +27,14 @@ KNL_SUFFIX=${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst
 # GPU
 GPU_VER=1.19.6345021
 GPU_REL=3
-# GPU driver on VF2_v3.6.1 is exactly the same as VF2_v3.4.5, so just use the old one.
+# GPU drivers on VF2_v3.6.1 and VF2_v3.7.5 are exactly the same as VF2_v3.4.5, so just use the old one.
 #GPU_URL=${GITHUB}/cwt/aur-visionfive2-img-gpu/releases/download/${BUILD}-${GPU_VER}-${GPU_REL}
 GPU_URL=${GITHUB}/cwt/aur-visionfive2-img-gpu/releases/download/cwt15-${GPU_VER}-${GPU_REL}
 GPU_PKG=visionfive2-img-gpu-${GPU_VER}-${GPU_REL}-riscv64.pkg.tar.zst
 
 # Mesa
-MESA_VER=22.1.3
-MESA_REL=2
+MESA_VER=22.1.7
+MESA_REL=1
 MESA_URL=${GITHUB}/cwt/aur-mesa-pvr-vf2/releases/download/v${MESA_VER}-${MESA_REL}
 MESA_PKG=mesa-pvr-vf2-${MESA_VER}-${MESA_REL}-riscv64.pkg.tar.zst
 
@@ -101,12 +101,12 @@ LOOP=$(sudo losetup -f -P --show "${IMAGE}")
 sudo sfdisk ${LOOP} < parts.txt
 
 # Dump SPL and U-Boot to the disk
-#sudo dd if=${DATA}/u-boot-spl.bin.normal.out of=${LOOP}p1 bs=512
-#sudo dd if=${DATA}/visionfive2_fw_payload.img of=${LOOP}p2 bs=512
+sudo dd if=${DATA}/u-boot-spl.bin.normal.out of=${LOOP}p1 bs=512
+sudo dd if=${DATA}/visionfive2_fw_payload.img of=${LOOP}p2 bs=512
 
 # Somehow the SPL and U-Boot images above are not working, use Debian image instead
-xzcat debian-part1.img.xz | sudo dd of=${LOOP}p1 bs=512
-xzcat debian-part2.img.xz | sudo dd of=${LOOP}p2 bs=512
+#xzcat debian-part1.img.xz | sudo dd of=${LOOP}p1 bs=512
+#xzcat debian-part2.img.xz | sudo dd of=${LOOP}p2 bs=512
 
 # Format EFI partition
 sudo mkfs.vfat -n EFI ${LOOP}p3
@@ -166,7 +166,7 @@ sudo install -o root -g root -m 644 configs/zram-generator.conf ${TARGET}/etc/sy
 # Create user
 sudo arch-chroot ${TARGET} groupadd user
 sudo arch-chroot ${TARGET} useradd -g user --btrfs-subvolume-home -c "Arch User" -m user
-sudo arch-chroot ${TARGET} /bin/bash -c "echo 'user:user' | chpasswd"
+sudo arch-chroot ${TARGET} /bin/bash -c "echo 'user:user' | chpasswd -c SHA512"
 sudo arch-chroot ${TARGET} /bin/bash -c "echo 'user ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/user"
 
 # Enable services
