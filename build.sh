@@ -7,11 +7,11 @@ GITHUB=https://github.com
 DATA=/data
 
 # Build parameters
-BUILD=cwt17
+BUILD=cwt18
 KERNEL=5.15.2
-SF_VERSION=v3.7.5
+SF_VERSION=v3.8.2
 SF_RELEASE_URL=${GITHUB}/starfive-tech/VisionFive2/releases/download
-ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2023-09-13.tar.zst
+ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2023-10-09.tar.zst
 
 # Output
 IMAGE=${DATA}/ArchLinux-VF2_${KERNEL}_${SF_VERSION}-${BUILD}.img
@@ -26,10 +26,8 @@ KNL_SUFFIX=${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst
 
 # GPU
 GPU_VER=1.19.6345021
-GPU_REL=3
-# GPU drivers on VF2_v3.6.1 and VF2_v3.7.5 are exactly the same as VF2_v3.4.5, so just use the old one.
-#GPU_URL=${GITHUB}/cwt/aur-visionfive2-img-gpu/releases/download/${BUILD}-${GPU_VER}-${GPU_REL}
-GPU_URL=${GITHUB}/cwt/aur-visionfive2-img-gpu/releases/download/cwt15-${GPU_VER}-${GPU_REL}
+GPU_REL=4
+GPU_URL=${GITHUB}/cwt/aur-visionfive2-img-gpu/releases/download/${BUILD}-${GPU_VER}-${GPU_REL}
 GPU_PKG=visionfive2-img-gpu-${GPU_VER}-${GPU_REL}-riscv64.pkg.tar.zst
 
 # Mesa
