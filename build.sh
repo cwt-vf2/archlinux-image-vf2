@@ -7,9 +7,10 @@ GITHUB=https://github.com
 DATA=/data
 
 # Build parameters
-BUILD=cwt18
+BUILD=cwt19
 KERNEL=5.15.2
-SF_VERSION=v3.8.2
+SF_VERSION=v3.9.3
+SF_TAG=JH7110_VF2_515_${SF_VERSION}
 SF_RELEASE_URL=${GITHUB}/starfive-tech/VisionFive2/releases/download
 ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2023-10-09.tar.zst
 
@@ -20,20 +21,20 @@ PKGS=${DATA}/pkgs
 
 # Kernel
 KNL_REL=1
-KNL_NAME=linux-cwt-515-starfive-visionfive2
-KNL_URL=${GITHUB}/cwt/pkgbuild-linux-cwt-starfive-visionfive2/releases/download/${BUILD}-${SF_VERSION:1}-${KNL_REL}
+KNL_NAME=linux-cwt-515-starfive-vf2
+KNL_URL=${GITHUB}/cwt-vf2/linux-cwt-starfive-vf2/releases/download/${BUILD}-${SF_VERSION:1}-${KNL_REL}
 KNL_SUFFIX=${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst
 
 # GPU
 GPU_VER=1.19.6345021
-GPU_REL=4
-GPU_URL=${GITHUB}/cwt/aur-visionfive2-img-gpu/releases/download/${BUILD}-${GPU_VER}-${GPU_REL}
-GPU_PKG=visionfive2-img-gpu-${GPU_VER}-${GPU_REL}-riscv64.pkg.tar.zst
+GPU_REL=5
+GPU_URL=${GITHUB}/cwt-vf2/img-gpu-vf2/releases/download/${BUILD}-${GPU_VER}-${GPU_REL}
+GPU_PKG=img-gpu-vf2-${GPU_VER}-${GPU_REL}-riscv64.pkg.tar.zst
 
 # Mesa
 MESA_VER=22.1.7
-MESA_REL=1
-MESA_URL=${GITHUB}/cwt/aur-mesa-pvr-vf2/releases/download/v${MESA_VER}-${MESA_REL}
+MESA_REL=4
+MESA_URL=${GITHUB}/cwt-vf2/mesa-pvr-vf2/releases/download/v${MESA_VER}-${MESA_REL}
 MESA_PKG=mesa-pvr-vf2-${MESA_VER}-${MESA_REL}-riscv64.pkg.tar.zst
 
 # WiFi Firmware
@@ -69,8 +70,8 @@ WGET="wget --progress=bar -c -O"
 
 # Download rootfs, StarFive SPL and U-Boot images
 ${WGET} ${DATA}/rootfs.tar.zst ${ROOTFS}
-${WGET} ${DATA}/u-boot-spl.bin.normal.out ${SF_RELEASE_URL}/VF2_${SF_VERSION}/u-boot-spl.bin.normal.out
-${WGET} ${DATA}/visionfive2_fw_payload.img ${SF_RELEASE_URL}/VF2_${SF_VERSION}/visionfive2_fw_payload.img
+${WGET} ${DATA}/u-boot-spl.bin.normal.out ${SF_RELEASE_URL}/${SF_TAG}/u-boot-spl.bin.normal.out
+${WGET} ${DATA}/visionfive2_fw_payload.img ${SF_RELEASE_URL}/${SF_TAG}/visionfive2_fw_payload.img
 
 # Download -cwt kernel
 ${WGET} ${PKGS}/${KNL_NAME}-${KNL_SUFFIX} ${KNL_URL}/${KNL_NAME}-${KNL_SUFFIX}
@@ -86,7 +87,7 @@ ${WGET} ${PKGS}/${MESA_PKG} ${MESA_URL}/${MESA_PKG}
 # Download WiFi Firmware
 rm -rf ${BUILDROOT}
 cd ${DATA}
-git clone -n --depth=1 --filter=tree:0 -b JH7110_VisionFive2_devel ${BUILDROOT_GIT}
+git clone -n --depth=1 --filter=tree:0 -b ${SF_TAG} ${BUILDROOT_GIT}
 cd ${BUILDROOT}
 git sparse-checkout set --no-cone ${WIFI_FW_PATH}
 git checkout
