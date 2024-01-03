@@ -7,12 +7,12 @@ GITHUB=https://github.com
 DATA=/data
 
 # Build parameters
-BUILD=cwt19
+BUILD=cwt20
 KERNEL=5.15.2
-SF_VERSION=v3.9.3
+SF_VERSION=v5.10.3
 SF_TAG=JH7110_VF2_515_${SF_VERSION}
 SF_RELEASE_URL=${GITHUB}/starfive-tech/VisionFive2/releases/download
-ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2023-10-09.tar.zst
+ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2023-12-13.tar.zst
 
 # Output
 IMAGE=${DATA}/ArchLinux-VF2_${KERNEL}_${SF_VERSION}-${BUILD}.img
@@ -27,8 +27,10 @@ KNL_SUFFIX=${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst
 
 # GPU
 GPU_VER=1.19.6345021
-GPU_REL=5
-GPU_URL=${GITHUB}/cwt-vf2/img-gpu-vf2/releases/download/${BUILD}-${GPU_VER}-${GPU_REL}
+GPU_REL=6
+# The GPU binary hasn't changed since the last build, so just use the old one.
+#GPU_URL=${GITHUB}/cwt-vf2/img-gpu-vf2/releases/download/${BUILD}-${GPU_VER}-${GPU_REL}
+GPU_URL=${GITHUB}/cwt-vf2/img-gpu-vf2/releases/download/cwt19-${GPU_VER}-${GPU_REL}
 GPU_PKG=img-gpu-vf2-${GPU_VER}-${GPU_REL}-riscv64.pkg.tar.zst
 
 # Mesa
@@ -37,14 +39,14 @@ MESA_REL=4
 MESA_URL=${GITHUB}/cwt-vf2/mesa-pvr-vf2/releases/download/v${MESA_VER}-${MESA_REL}
 MESA_PKG=mesa-pvr-vf2-${MESA_VER}-${MESA_REL}-riscv64.pkg.tar.zst
 
-# WiFi Firmware
+# WiFi and Bluetooth Firmware
 BUILDROOT=${DATA}/buildroot
 BUILDROOT_GIT=${GITHUB}/starfive-tech/buildroot.git
-WIFI_FW_PATH=package/starfive/usb_wifi
+WIFI_BT_FW_PATH=package/starfive/starfive-firmware
 
 # Target packages
 PACKAGES="base btrfs-progs chrony clinfo compsize dosfstools mtd-utils networkmanager openssh rng-tools\
-          smartmontools sudo terminus-font vi vulkan-tools wireless-regdb zram-generator zstd"
+          smartmontools sudo terminus-font vi vulkan-tools wireless-regdb zram-generator zstd iptables-nft"
 
 ## End configuration section ##
 
@@ -89,7 +91,7 @@ rm -rf ${BUILDROOT}
 cd ${DATA}
 git clone -n --depth=1 --filter=tree:0 -b ${SF_TAG} ${BUILDROOT_GIT}
 cd ${BUILDROOT}
-git sparse-checkout set --no-cone ${WIFI_FW_PATH}
+git sparse-checkout set --no-cone ${WIFI_BT_FW_PATH}
 git checkout
 cd ${WORK_DIR}
 
@@ -147,14 +149,22 @@ sudo cp ${DATA}/pkgs/* ${TARGET}/root/pkgs
 
 # Update and install packages via arch-chroot
 sudo arch-chroot ${TARGET} pacman -Syu --noconfirm
-sudo arch-chroot ${TARGET} pacman -S ${PACKAGES} --needed --noconfirm
+sudo arch-chroot ${TARGET} pacman -S ${PACKAGES} --needed --noconfirm --ask=4
 sudo arch-chroot ${TARGET} bash -c "pacman -U /root/pkgs/*.pkg.tar.zst --noconfirm"
 sudo arch-chroot ${TARGET} pacman -Sc --noconfirm
 
 # Install WiFi Firmware
-sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_FW_PATH}/ECR6600U_transport.bin ${TARGET}/usr/lib/firmware/ECR6600U_transport.bin
-sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_FW_PATH}/aic8800/* -t ${TARGET}/usr/lib/firmware/aic8800
-sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_FW_PATH}/aic8800DC/* -t ${TARGET}/usr/lib/firmware/aic8800DC
+sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/ECR6600U-usb-wifi/ECR6600U_transport.bin ${TARGET}/usr/lib/firmware/ECR6600U_transport.bin
+sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/aic8800-usb-wifi/aic8800/* -t ${TARGET}/usr/lib/firmware/aic8800
+sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/aic8800-usb-wifi/aic8800DC/* -t ${TARGET}/usr/lib/firmware/aic8800DC
+sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/ap6256-sdio-wifi/* -t ${TARGET}/usr/lib/firmware
+sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/ap6256-sdio-wifi/* -t ${TARGET}/usr/lib/firmware
+
+# Install Bluetooth Firmware
+sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/ap6256-bluetooth/BCM4345C5.hcd -t ${TARGET}/usr/lib/firmware
+sudo install -o root -g root -D -m 755 ${BUILDROOT}/${WIFI_BT_FW_PATH}/ap6256-bluetooth/S36ap6256-bluetooth -t ${TARGET}/etc/init.d
+sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/rtl8852bu-bluetooth/* -t ${TARGET}/usr/lib/firmware
+
 
 # Install default configs
 sudo install -o root -g root -m 644 configs/fstab ${TARGET}/etc/fstab
