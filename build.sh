@@ -7,9 +7,9 @@ GITHUB=https://github.com
 DATA=/data
 
 # Build parameters
-BUILD=cwt20
+BUILD=cwt21
 KERNEL=5.15.2
-SF_VERSION=v5.10.3
+SF_VERSION=v5.11.3
 SF_TAG=JH7110_VF2_515_${SF_VERSION}
 SF_RELEASE_URL=${GITHUB}/starfive-tech/VisionFive2/releases/download
 ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2023-12-13.tar.zst
@@ -125,13 +125,17 @@ done
 sudo umount ${TARGET}
 
 # Remount all subvolumes
-VOLUMES="@:${TARGET} @home:${TARGET}/home @pkg:${TARGET}/var/cache/pacman/pkg\
+VOLUMES="@:${TARGET} @home:${TARGET}/home\
          @log:${TARGET}/var/log @snapshots:${TARGET}/.snapshots"
 for volume in ${VOLUMES}; do
 	IFS=: read -r subvol mnt <<< ${volume}
 	sudo mkdir -p ${mnt}
 	sudo mount -o discard=async,compress=lzo,subvol=${subvol} ${LOOP}p4 ${mnt}
 done
+
+# Mount packages cache as tmpfs
+sudo mkdir -p ${TARGET}/var/cache/pacman/pkg
+sudo mount -t tmpfs tmpfs ${TARGET}/var/cache/pacman/pkg
 
 # Mount /boot and install StarFive u-boot config
 sudo mkdir -p ${TARGET}/boot
@@ -146,6 +150,9 @@ sudo tar -C ${TARGET} --zstd -xf ${DATA}/rootfs.tar.zst
 # Copy kernel and GPU driver packages
 sudo mkdir -p ${TARGET}/root/pkgs
 sudo cp ${DATA}/pkgs/* ${TARGET}/root/pkgs
+
+# Disable microcode hook
+sudo install -o root -g root -D -m 644 configs/no-microcode-hook.conf ${TARGET}/etc/mkinitcpio.conf.d/no-microcode-hook.conf
 
 # Update and install packages via arch-chroot
 sudo arch-chroot ${TARGET} pacman -Syu --noconfirm
