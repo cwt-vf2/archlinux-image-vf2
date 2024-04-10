@@ -12,7 +12,7 @@ KERNEL=5.15.2
 SF_VERSION=v5.11.3
 SF_TAG=JH7110_VF2_515_${SF_VERSION}
 SF_RELEASE_URL=${GITHUB}/starfive-tech/VisionFive2/releases/download
-ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2023-12-13.tar.zst
+ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2024-03-30.tar.zst
 
 # Output
 IMAGE=${DATA}/ArchLinux-VF2_${KERNEL}_${SF_VERSION}-${BUILD}.img
@@ -44,9 +44,13 @@ BUILDROOT=${DATA}/buildroot
 BUILDROOT_GIT=${GITHUB}/starfive-tech/buildroot.git
 WIFI_BT_FW_PATH=package/starfive/starfive-firmware
 
+# Wave5 Firmware
+WAVE5_FW=https://gitlab.collabora.com/chipsnmedia/linux-firmware/-/raw/cnm/cnm/wave511_dec_fw.bin
+
 # Target packages
 PACKAGES="base btrfs-progs chrony clinfo compsize dosfstools mtd-utils networkmanager openssh rng-tools\
-          smartmontools sudo terminus-font vi vulkan-tools wireless-regdb zram-generator zstd iptables-nft"
+          smartmontools sudo terminus-font vi vulkan-tools wireless-regdb zram-generator zstd iptables-nft\
+	  linux-firmware apparmor python-notify2 python-psutil"
 
 ## End configuration section ##
 
@@ -56,7 +60,7 @@ PACKAGES="base btrfs-progs chrony clinfo compsize dosfstools mtd-utils networkma
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
-# Remember current directory
+# Remember current directory as working directory
 WORK_DIR=$(pwd)
 
 # Install required tools on the builder box
@@ -93,9 +97,13 @@ git clone -n --depth=1 --filter=tree:0 -b ${SF_TAG} ${BUILDROOT_GIT}
 cd ${BUILDROOT}
 git sparse-checkout set --no-cone ${WIFI_BT_FW_PATH}
 git checkout
-cd ${WORK_DIR}
+
+# Download Wave5 Firmware
+cd ${DATA}
+${WGET} wave511_dec_fw.bin ${WAVE5_FW}
 
 # Setup disk image
+cd ${WORK_DIR}
 rm -f ${IMAGE}
 fallocate -l 2250M ${IMAGE}
 LOOP=$(sudo losetup -f -P --show "${IMAGE}")
@@ -172,6 +180,8 @@ sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/ap6256-bl
 sudo install -o root -g root -D -m 755 ${BUILDROOT}/${WIFI_BT_FW_PATH}/ap6256-bluetooth/S36ap6256-bluetooth -t ${TARGET}/etc/init.d
 sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/rtl8852bu-bluetooth/* -t ${TARGET}/usr/lib/firmware
 
+# Install Wave5 Firmware
+sudo install -o root -g root -D -m 644 ${DATA}/wave511_dec_fw.bin -t ${TARGET}/usr/lib/firmware
 
 # Install default configs
 sudo install -o root -g root -m 644 configs/fstab ${TARGET}/etc/fstab
@@ -186,7 +196,7 @@ sudo arch-chroot ${TARGET} /bin/bash -c "echo 'user:user' | chpasswd -c SHA512"
 sudo arch-chroot ${TARGET} /bin/bash -c "echo 'user ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/user"
 
 # Enable services
-SERVICES="NetworkManager chronyd rngd smartd sshd"
+SERVICES="NetworkManager chronyd rngd smartd sshd apparmor"
 for service in ${SERVICES}; do
 	sudo arch-chroot ${TARGET} systemctl enable ${service}
 done
