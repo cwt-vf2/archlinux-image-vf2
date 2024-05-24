@@ -7,11 +7,13 @@ GITHUB=https://github.com
 DATA=/data
 
 # Build parameters
-BUILD=cwt21
-KERNEL=5.15.2
-SF_VERSION=v5.11.3
-SF_TAG=JH7110_VF2_515_${SF_VERSION}
-SF_RELEASE_URL=${GITHUB}/starfive-tech/VisionFive2/releases/download
+BUILD=cwt22
+KERNEL=6.6
+SF_VERSION=v5.12.0
+SF_TAG=JH7110_VF2_${KERNEL}_${SF_VERSION}
+U_BOOT_PKG_VER=2024.04-1
+U_BOOT_PKG_URL=${GITHUB}/cwt-vf2/u-boot-starfive-vf2/releases/download/${U_BOOT_PKG_VER}
+U_BOOT_PKG=u-boot-starfive-vf2-${U_BOOT_PKG_VER}-riscv64.pkg.tar.zst
 ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2024-03-30.tar.zst
 
 # Output
@@ -20,8 +22,8 @@ TARGET=${DATA}/${BUILD}
 PKGS=${DATA}/pkgs
 
 # Kernel
-KNL_REL=2
-KNL_NAME=linux-cwt-515-starfive-vf2
+KNL_REL=1
+KNL_NAME=linux-cwt-${KERNEL}-starfive-vf2
 KNL_URL=${GITHUB}/cwt-vf2/linux-cwt-starfive-vf2/releases/download/${BUILD}-${SF_VERSION:1}-${KNL_REL}
 KNL_SUFFIX=${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst
 
@@ -66,18 +68,22 @@ WORK_DIR=$(pwd)
 # Install required tools on the builder box
 sudo pacman -S wget arch-install-scripts zstd util-linux btrfs-progs dosfstools git xz --needed --noconfirm
 
+# Set wget options
+WGET="wget --progress=bar -c -O"
+
+# Download U-Boot (built with Starfive's OpenSBI)
+${WGET} ${DATA}/${U_BOOT_PKG} ${U_BOOT_PKG_URL}/${U_BOOT_PKG}
+
+# Install U-Boot on the builder box, the U-Boot images will be at /usr/share/u-boot-starfive-vf2/
+sudo pacman -U ${DATA}/${U_BOOT_PKG} --noconfirm
+
 # Prepare build directory
 sudo mkdir -p ${DATA}
 sudo chown $(id -u):$(id -g) ${DATA}
 mkdir -p ${PKGS}
 
-# Set wget options
-WGET="wget --progress=bar -c -O"
-
-# Download rootfs, StarFive SPL and U-Boot images
+# Download rootfs
 ${WGET} ${DATA}/rootfs.tar.zst ${ROOTFS}
-${WGET} ${DATA}/u-boot-spl.bin.normal.out ${SF_RELEASE_URL}/${SF_TAG}/u-boot-spl.bin.normal.out
-${WGET} ${DATA}/visionfive2_fw_payload.img ${SF_RELEASE_URL}/${SF_TAG}/visionfive2_fw_payload.img
 
 # Download -cwt kernel
 ${WGET} ${PKGS}/${KNL_NAME}-${KNL_SUFFIX} ${KNL_URL}/${KNL_NAME}-${KNL_SUFFIX}
@@ -110,12 +116,8 @@ LOOP=$(sudo losetup -f -P --show "${IMAGE}")
 sudo sfdisk ${LOOP} < parts.txt
 
 # Dump SPL and U-Boot to the disk
-sudo dd if=${DATA}/u-boot-spl.bin.normal.out of=${LOOP}p1 bs=512
-sudo dd if=${DATA}/visionfive2_fw_payload.img of=${LOOP}p2 bs=512
-
-# Somehow the SPL and U-Boot images above are not working, use Debian image instead
-#xzcat debian-part1.img.xz | sudo dd of=${LOOP}p1 bs=512
-#xzcat debian-part2.img.xz | sudo dd of=${LOOP}p2 bs=512
+sudo dd if=/usr/share/u-boot-starfive-vf2/u-boot-spl.bin.normal.out of=${LOOP}p1 bs=512
+sudo dd if=/usr/share/u-boot-starfive-vf2/u-boot.itb of=${LOOP}p2 bs=512
 
 # Format EFI partition
 sudo mkfs.vfat -n EFI ${LOOP}p3
@@ -158,6 +160,9 @@ sudo tar -C ${TARGET} --zstd -xf ${DATA}/rootfs.tar.zst
 # Copy kernel and GPU driver packages
 sudo mkdir -p ${TARGET}/root/pkgs
 sudo cp ${DATA}/pkgs/* ${TARGET}/root/pkgs
+
+# Also copy U-Boot package to target
+sudo cp ${DATA}/${U_BOOT_PKG} ${TARGET}/root/pkgs
 
 # Disable microcode hook
 sudo install -o root -g root -D -m 644 configs/no-microcode-hook.conf ${TARGET}/etc/mkinitcpio.conf.d/no-microcode-hook.conf
