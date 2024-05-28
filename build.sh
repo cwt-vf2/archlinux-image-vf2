@@ -22,7 +22,7 @@ TARGET=${DATA}/${BUILD}
 PKGS=${DATA}/pkgs
 
 # Kernel
-KNL_REL=1
+KNL_REL=3
 KNL_NAME=linux-cwt-${KERNEL}-starfive-vf2
 KNL_URL=${GITHUB}/cwt-vf2/linux-cwt-starfive-vf2/releases/download/${BUILD}-${SF_VERSION:1}-${KNL_REL}
 KNL_SUFFIX=${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst
