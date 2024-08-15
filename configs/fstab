@@ -7,15 +7,15 @@
 # systemd generates mount units based on this file, see systemd.mount(5).
 # Please run 'systemctl daemon-reload' after making changes here.
 #
-# <FS>   <mount>               <type> <options>                                                               <dump> <pass>
-LABEL=EFI /boot                 vfat  defaults,discard                                                             0 2
-LABEL=VF2 /                     btrfs defaults,discard=async,compress=lzo,user_subvol_rm_allowed,subvol=@          0 1
-LABEL=VF2 /home                 btrfs defaults,discard=async,compress=lzo,user_subvol_rm_allowed,subvol=@home      0 1
-LABEL=VF2 /var/cache/pacman/pkg btrfs defaults,discard=async,compress=lzo,user_subvol_rm_allowed,subvol=@pkg       0 1
-LABEL=VF2 /var/log              btrfs defaults,discard=async,compress=lzo,user_subvol_rm_allowed,subvol=@log       0 1
-LABEL=VF2 /.snapshots           btrfs defaults,discard=async,compress=lzo,user_subvol_rm_allowed,subvol=@snapshots 0 1
-tmpfs     /tmp                  tmpfs defaults                                                                     0 0
-tmpfs     /var/tmp              tmpfs defaults                                                                     0 0
+# <FS>   <mount>               <type> <options>                                                                <dump> <pass>
+LABEL=EFI /boot                 vfat  defaults,discard                                                              0 2
+LABEL=VF2 /                     btrfs defaults,discard=async,compress=lzo,user_subvol_rm_allowed,subvol=@           0 1
+LABEL=VF2 /home                 btrfs defaults,discard=async,compress=lzo,user_subvol_rm_allowed,subvol=@home       0 1
+LABEL=VF2 /var/cache/pacman/pkg btrfs defaults,discard=async,compress=lzo,user_subvol_rm_allowed,subvol=@pkg        0 1
+LABEL=VF2 /var/log              btrfs defaults,discard=async,compress=lzo,user_subvol_rm_allowed,subvol=@log        0 1
+LABEL=VF2 /.snapshots           btrfs defaults,discard=async,compress=lzo,user_subvol_rm_allowed,subvol=@.snapshots 0 1
+tmpfs     /tmp                  tmpfs defaults                                                                      0 0
+tmpfs     /var/tmp              tmpfs defaults                                                                      0 0
 
-LABEL=VF2 /mnt                  btrfs noauto,discard=async,compress=lzo,subvol=/                                   0 1
+LABEL=VF2 /mnt                  btrfs noauto,discard=async,compress=lzo,subvol=/                                    0 1
 

@@ -128,7 +128,7 @@ sudo mkfs.btrfs --csum xxhash -L VF2 ${LOOP}p4
 # Setup target mount
 sudo mkdir -p ${TARGET}
 sudo mount -o discard=async,compress=lzo ${LOOP}p4 ${TARGET}
-VOLUMES="@ @home @pkg @log @snapshots"
+VOLUMES="@ @home @pkg @log @.snapshots"
 for volume in ${VOLUMES}; do
 	sudo btrfs subvolume create ${TARGET}/${volume}
 done
@@ -136,7 +136,7 @@ sudo umount ${TARGET}
 
 # Remount all subvolumes
 VOLUMES="@:${TARGET} @home:${TARGET}/home\
-         @log:${TARGET}/var/log @snapshots:${TARGET}/.snapshots"
+         @log:${TARGET}/var/log @.snapshots:${TARGET}/.snapshots"
 for volume in ${VOLUMES}; do
 	IFS=: read -r subvol mnt <<< ${volume}
 	sudo mkdir -p ${mnt}
