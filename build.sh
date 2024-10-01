@@ -7,14 +7,14 @@ GITHUB=https://github.com
 DATA=/data
 
 # Build parameters
-BUILD=cwt22
+BUILD=cwt23
 KERNEL=6.6
-SF_VERSION=v5.12.0
+SF_VERSION=v5.13.1
 SF_TAG=JH7110_VF2_${KERNEL}_${SF_VERSION}
-U_BOOT_PKG_VER=2024.04-1
+U_BOOT_PKG_VER=2024.07-3
 U_BOOT_PKG_URL=${GITHUB}/cwt-vf2/u-boot-starfive-vf2/releases/download/${U_BOOT_PKG_VER}
 U_BOOT_PKG=u-boot-starfive-vf2-${U_BOOT_PKG_VER}-riscv64.pkg.tar.zst
-ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2024-03-30.tar.zst
+ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2024-09-22.tar.zst
 
 # Output
 IMAGE=${DATA}/ArchLinux-VF2_${KERNEL}_${SF_VERSION}-${BUILD}.img
@@ -22,7 +22,7 @@ TARGET=${DATA}/${BUILD}
 PKGS=${DATA}/pkgs
 
 # Kernel
-KNL_REL=3
+KNL_REL=1
 KNL_NAME=linux-cwt-${KERNEL}-starfive-vf2
 KNL_URL=${GITHUB}/cwt-vf2/linux-cwt-starfive-vf2/releases/download/${BUILD}-${SF_VERSION:1}-${KNL_REL}
 KNL_SUFFIX=${BUILD:3}.${SF_VERSION:1}-${KNL_REL}-riscv64.pkg.tar.zst
@@ -68,6 +68,14 @@ WORK_DIR=$(pwd)
 # Install required tools on the builder box
 sudo pacman -S wget arch-install-scripts zstd util-linux btrfs-progs dosfstools git xz --needed --noconfirm
 
+# Prepare build directory
+sudo mkdir -p ${DATA}
+ZR=$(sudo zramctl -f --size=10G)
+sudo mkfs.ext4 ${ZR}
+sudo mount ${ZR} ${DATA}
+sudo chown -R $(id -u):$(id -g) ${DATA}
+mkdir -p ${PKGS}
+
 # Set wget options
 WGET="wget --progress=bar -c -O"
 
@@ -76,11 +84,6 @@ ${WGET} ${DATA}/${U_BOOT_PKG} ${U_BOOT_PKG_URL}/${U_BOOT_PKG}
 
 # Install U-Boot on the builder box, the U-Boot images will be at /usr/share/u-boot-starfive-vf2/
 sudo pacman -U ${DATA}/${U_BOOT_PKG} --noconfirm
-
-# Prepare build directory
-sudo mkdir -p ${DATA}
-sudo chown $(id -u):$(id -g) ${DATA}
-mkdir -p ${PKGS}
 
 # Download rootfs
 ${WGET} ${DATA}/rootfs.tar.zst ${ROOTFS}
