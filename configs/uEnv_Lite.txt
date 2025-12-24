@@ -7,5 +7,7 @@ fdt_addr_r=0x46000000
 ramdisk_addr_r=0x46100000
 # Move distro to first boot to speed up booting
 boot_targets=distro mmc0 dhcp 
+# Fix wrong fdtfile name
+fdtfile=starfive/jh7110s-starfive-visionfive-2-lite.dtb
 # Fix missing bootcmd
 bootcmd=run load_distro_uenv;run bootcmd_distro

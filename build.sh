@@ -7,14 +7,14 @@ GITHUB=https://github.com
 DATA=/data
 
 # Build parameters
-BUILD=cwt24
+BUILD=cwt25
 KERNEL=6.12
-SF_VERSION=v5.14.0
+SF_VERSION=v6.0.0
 SF_TAG=JH7110_VF2_${KERNEL}_${SF_VERSION}
-U_BOOT_PKG_VER=2025.01-1
+U_BOOT_PKG_VER=2025.10-2
 U_BOOT_PKG_URL=${GITHUB}/cwt-vf2/u-boot-starfive-vf2/releases/download/${U_BOOT_PKG_VER}
 U_BOOT_PKG=u-boot-starfive-vf2-${U_BOOT_PKG_VER}-riscv64.pkg.tar.zst
-ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2024-09-22.tar.zst
+ROOTFS=https://riscv.mirror.pkgbuild.com/images/archriscv-2025-06-12.tar.zst
 
 # Output
 IMAGE=${DATA}/ArchLinux-VF2_${KERNEL}_${SF_VERSION}-${BUILD}.img
@@ -37,7 +37,7 @@ GPU_PKG=img-gpu-vf2-${GPU_VER}-${GPU_REL}-riscv64.pkg.tar.zst
 
 # Mesa
 MESA_VER=22.1.7
-MESA_REL=1
+MESA_REL=2
 MESA_URL=${GITHUB}/cwt-vf2/mesa-pvr-ddk119/releases/download/${MESA_VER}-${MESA_REL}
 MESA_PKG=mesa-pvr-ddk119-${MESA_VER}-${MESA_REL}-riscv64.pkg.tar.zst
 
@@ -154,7 +154,7 @@ sudo mount -t tmpfs tmpfs ${TARGET}/var/cache/pacman/pkg
 sudo mkdir -p ${TARGET}/boot
 sudo mount -o discard ${LOOP}p3 ${TARGET}/boot
 sudo mkdir -p ${TARGET}/boot/extlinux
-sudo install -o root -g root -m 644 configs/uEnv.txt ${TARGET}/boot/uEnv.txt
+sudo install -o root -g root -m 644 configs/uEnv*.txt ${TARGET}/boot/
 sudo install -o root -g root -m 644 configs/extlinux.conf ${TARGET}/boot/extlinux/extlinux.conf
 
 # Extract rootfs to target mount
@@ -177,6 +177,7 @@ sudo arch-chroot ${TARGET} pacman -Sc --noconfirm
 sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/ECR6600U-usb-wifi/ECR6600U_transport.bin ${TARGET}/usr/lib/firmware/ECR6600U_transport.bin
 sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/aic8800-usb-wifi/aic8800/* -t ${TARGET}/usr/lib/firmware/aic8800
 sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/aic8800-usb-wifi/aic8800DC/* -t ${TARGET}/usr/lib/firmware/aic8800DC
+sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/aic8800-sdio-wifi/aic8800D80/* -t ${TARGET}/usr/lib/firmware/aic8800D80
 sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/ap6256-sdio-wifi/* -t ${TARGET}/usr/lib/firmware
 sudo install -o root -g root -D -m 644 ${BUILDROOT}/${WIFI_BT_FW_PATH}/ap6256-sdio-wifi/* -t ${TARGET}/usr/lib/firmware
 
